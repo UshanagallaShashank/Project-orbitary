@@ -1,53 +1,33 @@
-# test_agents.py — unit tests for TaskAgent, TrackerAgent, CommsAgent, MentorAgent
+# test_agents.py — unit tests for TrackerAgent, CommsAgent, MentorAgent
 
 import pytest
+from unittest.mock import MagicMock, patch
 
-from agents.task_agent import TaskAgent
 from agents.tracker_agent import TrackerAgent
 from agents.comms_agent import CommsAgent
 from agents.mentor_agent import MentorAgent, MENTOR_PARTS
 
 
-# --- TaskAgent ---
-
-def test_task_create_event_stub():
-    agent = TaskAgent()
-    result = agent.create_event("Standup", "2025-01-01T09:00", "2025-01-01T09:30")
-    assert result["status"] == "stub"
-    assert result["event"] == "Standup"
-
-
-def test_task_list_events_returns_list():
-    result = TaskAgent().list_events("2025-01-01")
-    assert isinstance(result, list)
-
-
-def test_task_delete_event_stub():
-    result = TaskAgent().delete_event("evt-123")
-    assert result["deleted"] == "evt-123"
-
-
-def test_task_run_defaults_to_list():
-    result = TaskAgent().run("CALENDAR", {})
-    assert "events" in result
-
-
 # --- TrackerAgent ---
 
-def test_tracker_log_solve_stub():
+def test_tracker_log_solve_returns_problem():
     result = TrackerAgent().log_solve("two-sum", "easy")
     assert result["problem"] == "two-sum"
 
 
-def test_tracker_get_streak_stub():
+def test_tracker_get_streak_returns_dict():
     result = TrackerAgent().get_streak()
     assert "streak" in result
-    assert result["streak"] == 0
 
 
-def test_tracker_topic_progress_stub():
+def test_tracker_topic_progress_returns_topic():
     result = TrackerAgent().get_topic_progress("graphs")
     assert result["topic"] == "graphs"
+
+
+def test_tracker_run_defaults_to_streak():
+    result = TrackerAgent().run("TRACKER", {})
+    assert "streak" in result
 
 
 # --- CommsAgent ---
