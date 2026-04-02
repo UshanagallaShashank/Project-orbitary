@@ -10,11 +10,11 @@ test.beforeAll(() => {
   if (!fs.existsSync(SS)) fs.mkdirSync(SS, { recursive: true })
 })
 
-// Helper — send a request via the input bar and wait for state update
 async function sendRequest(page, text) {
   await page.getByTestId('input-bar').fill(text)
   await page.getByTestId('input-bar').press('Enter')
-  await page.waitForTimeout(800)
+  // Wait for React state to settle — mock applies synchronously so 500ms is plenty
+  await page.waitForTimeout(500)
 }
 
 test('all 4 panels render on load', async ({ page }) => {
@@ -44,30 +44,39 @@ test('connection status dot renders', async ({ page }) => {
   await page.screenshot({ path: `${SS}/connection-dot.png` })
 })
 
-test('intent panel updates after sending a request', async ({ page }) => {
+test('intent panel shows MENTOR after explain request', async ({ page }) => {
   await page.goto('/')
 
   await sendRequest(page, 'explain binary search')
 
-  // Intent label must change from default dash
-  const label = page.getByTestId('intent-panel').locator('p.font-mono').first()
-  await expect(label).not.toHaveText('—')
+  // classifyOffline maps "explain" → MENTOR — assert exact label
+  await expect(page.getByTestId('intent-panel')).toContainText('MENTOR')
 
   await page.screenshot({ path: `${SS}/intent-after-request.png` })
 })
 
-test('agent panel shows agent name and DONE status after request', async ({ page }) => {
+test('intent panel shows TRACKER after streak request', async ({ page }) => {
   await page.goto('/')
 
   await sendRequest(page, 'show my leetcode streak')
 
-  await expect(page.getByTestId('agent-panel')).toContainText('agent')
+  await expect(page.getByTestId('intent-panel')).toContainText('TRACKER')
+
+  await page.screenshot({ path: `${SS}/intent-tracker.png` })
+})
+
+test('agent panel shows DONE status badge after request', async ({ page }) => {
+  await page.goto('/')
+
+  await sendRequest(page, 'explain recursion')
+
+  await expect(page.getByTestId('agent-status')).toBeVisible()
   await expect(page.getByTestId('agent-status')).toHaveText('DONE')
 
   await page.screenshot({ path: `${SS}/agent-panel-done.png` })
 })
 
-test('memory panel shows at least one Redis key', async ({ page }) => {
+test('memory panel shows Redis session key on load', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByTestId('redis-key')).toBeVisible()
@@ -76,24 +85,24 @@ test('memory panel shows at least one Redis key', async ({ page }) => {
   await page.screenshot({ path: `${SS}/memory-panel.png` })
 })
 
-test('voice panel shows latency in ms after request', async ({ page }) => {
+test('voice panel shows transcript after request', async ({ page }) => {
   await page.goto('/')
 
   await sendRequest(page, 'what is a heap')
 
-  await expect(page.getByTestId('voice-latency')).toBeVisible()
+  await expect(page.getByTestId('voice-panel')).toContainText('what is a heap')
   await expect(page.getByTestId('voice-latency')).toContainText('ms')
 
-  await page.screenshot({ path: `${SS}/voice-latency.png` })
+  await page.screenshot({ path: `${SS}/voice-panel.png` })
 })
 
-test('request log adds a new row after each request', async ({ page }) => {
+test('request log adds a row after each request', async ({ page }) => {
   await page.goto('/')
 
   await sendRequest(page, 'read my emails')
 
-  const rows = page.getByTestId('request-log').locator('tbody tr')
-  await expect(rows.first()).not.toContainText('no requests yet')
+  // Log row should appear with COMMS intent
+  await expect(page.getByTestId('request-log')).toContainText('COMMS')
 
   await page.screenshot({ path: `${SS}/request-log.png`, fullPage: true })
 })

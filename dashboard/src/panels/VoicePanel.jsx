@@ -1,7 +1,5 @@
 // VoicePanel — waveform, last transcript, Gemini Live latency
 
-import { useEffect, useRef } from 'react'
-
 function Waveform({ active }) {
   const bars = Array.from({ length: 24 }, (_, i) => i)
 
@@ -11,10 +9,7 @@ function Waveform({ active }) {
         <div
           key={i}
           className={`w-1 rounded-sm ${active ? 'bg-green-400' : 'bg-zinc-700'}`}
-          style={{
-            height: active ? `${8 + Math.sin(i * 0.8) * 12 + Math.random() * 8}px` : '4px',
-            transition: active ? 'height 0.1s ease' : 'height 0.3s ease',
-          }}
+          style={{ height: active ? `${8 + Math.sin(i * 0.8) * 12}px` : '4px' }}
         />
       ))}
     </div>
