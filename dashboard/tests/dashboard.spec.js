@@ -4,11 +4,18 @@ import { test, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
 
-const SCREENSHOTS = path.resolve('../test-results/playwright/screenshots')
+const SS = path.resolve('../test-results/playwright/screenshots')
 
-function ensureDir(d) { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }) }
+test.beforeAll(() => {
+  if (!fs.existsSync(SS)) fs.mkdirSync(SS, { recursive: true })
+})
 
-test.beforeAll(() => ensureDir(SCREENSHOTS))
+// Helper — send a request via the input bar and wait for state update
+async function sendRequest(page, text) {
+  await page.getByTestId('input-bar').fill(text)
+  await page.getByTestId('input-bar').press('Enter')
+  await page.waitForTimeout(800)
+}
 
 test('all 4 panels render on load', async ({ page }) => {
   await page.goto('/')
@@ -18,93 +25,85 @@ test('all 4 panels render on load', async ({ page }) => {
   await expect(page.getByTestId('memory-panel')).toBeVisible()
   await expect(page.getByTestId('voice-panel')).toBeVisible()
 
-  await page.screenshot({ path: `${SCREENSHOTS}/all-panels.png`, fullPage: true })
+  await page.screenshot({ path: `${SS}/all-panels.png`, fullPage: true })
 })
 
-test('ORBIT wordmark visible in top bar', async ({ page }) => {
+test('ORBIT wordmark is visible in top bar', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByText('Orbit')).toBeVisible()
 
-  await page.screenshot({ path: `${SCREENSHOTS}/topbar.png` })
+  await page.screenshot({ path: `${SS}/topbar.png` })
 })
 
-test('connection status dot is visible', async ({ page }) => {
+test('connection status dot renders', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByTestId('connection-dot')).toBeVisible()
 
-  await page.screenshot({ path: `${SCREENSHOTS}/connection-dot.png` })
+  await page.screenshot({ path: `${SS}/connection-dot.png` })
 })
 
 test('intent panel updates after sending a request', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByTestId('input-bar').fill('explain binary search')
-  await page.getByTestId('input-bar').press('Enter')
+  await sendRequest(page, 'explain binary search')
 
-  await page.waitForTimeout(1500)
-
-  const label = page.getByTestId('intent-panel').locator('.font-mono').first()
+  // Intent label must change from default dash
+  const label = page.getByTestId('intent-panel').locator('p.font-mono').first()
   await expect(label).not.toHaveText('—')
 
-  await page.screenshot({ path: `${SCREENSHOTS}/intent-after-request.png` })
+  await page.screenshot({ path: `${SS}/intent-after-request.png` })
 })
 
-test('agent panel shows status badge after request', async ({ page }) => {
+test('agent panel shows agent name and DONE status after request', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByTestId('input-bar').fill('show my streak')
-  await page.getByTestId('input-bar').press('Enter')
+  await sendRequest(page, 'show my leetcode streak')
 
-  await page.waitForTimeout(1500)
+  await expect(page.getByTestId('agent-panel')).toContainText('agent')
+  await expect(page.getByTestId('agent-status')).toHaveText('DONE')
 
-  await page.screenshot({ path: `${SCREENSHOTS}/agent-panel.png` })
+  await page.screenshot({ path: `${SS}/agent-panel-done.png` })
 })
 
-test('memory panel has at least one Redis key', async ({ page }) => {
+test('memory panel shows at least one Redis key', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByTestId('redis-key')).toBeVisible()
+  await expect(page.getByTestId('redis-key')).toContainText('session')
 
-  await page.screenshot({ path: `${SCREENSHOTS}/memory-panel.png` })
+  await page.screenshot({ path: `${SS}/memory-panel.png` })
 })
 
-test('voice panel shows latency value', async ({ page }) => {
+test('voice panel shows latency in ms after request', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByTestId('input-bar').fill('what is a heap')
-  await page.getByTestId('input-bar').press('Enter')
+  await sendRequest(page, 'what is a heap')
 
-  await page.waitForTimeout(1500)
+  await expect(page.getByTestId('voice-latency')).toBeVisible()
+  await expect(page.getByTestId('voice-latency')).toContainText('ms')
 
-  const latency = page.getByTestId('voice-latency')
-  await expect(latency).toBeVisible()
-  await expect(latency).toContainText('ms')
-
-  await page.screenshot({ path: `${SCREENSHOTS}/voice-latency.png` })
+  await page.screenshot({ path: `${SS}/voice-latency.png` })
 })
 
 test('request log adds a new row after each request', async ({ page }) => {
   await page.goto('/')
 
-  await page.getByTestId('input-bar').fill('read my emails')
-  await page.getByTestId('input-bar').press('Enter')
-
-  await page.waitForTimeout(1500)
+  await sendRequest(page, 'read my emails')
 
   const rows = page.getByTestId('request-log').locator('tbody tr')
-  await expect(rows).not.toHaveCount(0)
+  await expect(rows.first()).not.toContainText('no requests yet')
 
-  await page.screenshot({ path: `${SCREENSHOTS}/request-log.png`, fullPage: true })
+  await page.screenshot({ path: `${SS}/request-log.png`, fullPage: true })
 })
 
-test('export button is visible and clickable', async ({ page }) => {
+test('export button is visible and labelled correctly', async ({ page }) => {
   await page.goto('/')
 
   const btn = page.getByTestId('export-button')
   await expect(btn).toBeVisible()
   await expect(btn).toContainText('export')
 
-  await page.screenshot({ path: `${SCREENSHOTS}/export-button.png` })
+  await page.screenshot({ path: `${SS}/export-button.png` })
 })
