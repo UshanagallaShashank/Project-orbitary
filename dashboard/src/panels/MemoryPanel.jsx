@@ -6,7 +6,7 @@ function RedisRow({ k, v }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="border-b border-zinc-800 last:border-0">
+    <div className="border-b border-zinc-800 last:border-0" data-testid="redis-key">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between py-2 text-left hover:bg-zinc-900 px-1 transition-colors"
@@ -30,10 +30,9 @@ export default function MemoryPanel({ memory }) {
 
       <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Redis Session</p>
 
-      {memory.redis.length === 0
-        ? <p className="font-mono text-zinc-700 text-xs mb-3" data-testid="redis-key">session:active — true</p>
-        : memory.redis.map((r, i) => <RedisRow key={i} k={r.key} v={r.value} />)
-      }
+      {memory.redis.map((r, i) => (
+        <RedisRow key={i} k={r.key} v={r.value} />
+      ))}
 
       <p className="text-zinc-600 text-xs uppercase tracking-widest mt-4 mb-2">pgvector — last query</p>
 

@@ -40,3 +40,9 @@
 {"input": "read my last 3 emails", "expected": "COMMS", "got": "COMMS", "correct": true, "latency_ms": 0}
 {"input": "what is dynamic programming", "expected": "MENTOR", "got": "MENTOR", "correct": true, "latency_ms": 0}
 {"input": "log that I solved two sum", "expected": "TRACKER", "got": "TRACKER", "correct": true, "latency_ms": 0}
+{"input": "explain binary search to me", "expected": "MENTOR", "got": "MENTOR", "correct": true, "latency_ms": 0}
+{"input": "show my leetcode streak", "expected": "TRACKER", "got": "TRACKER", "correct": true, "latency_ms": 0}
+{"input": "what's on my calendar today", "expected": "CALENDAR", "got": "CALENDAR", "correct": true, "latency_ms": 0}
+{"input": "read my last 3 emails", "expected": "COMMS", "got": "COMMS", "correct": true, "latency_ms": 0}
+{"input": "what is dynamic programming", "expected": "MENTOR", "got": "MENTOR", "correct": true, "latency_ms": 0}
+{"input": "log that I solved two sum", "expected": "TRACKER", "got": "TRACKER", "correct": true, "latency_ms": 0}
