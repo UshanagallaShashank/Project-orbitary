@@ -6,19 +6,24 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
 jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
-      - name: Install dependencies
+      - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
           pip install \
@@ -38,11 +43,13 @@ jobs:
 
       - name: Run unit tests
         run: |
+          mkdir -p test-results
           pytest tests/unit/ -v \
-            --json-report --json-report-file=test-results/unit-results.json \
+            --json-report \
+            --json-report-file=test-results/unit-results.json \
             --tb=short
 
-      - name: Upload unit test results
+      - name: Upload unit results
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -53,6 +60,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: unit-tests
+
     services:
       redis:
         image: redis:7-alpine
@@ -62,15 +70,16 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
-      - name: Install dependencies
+      - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
           pip install \
@@ -91,13 +100,15 @@ jobs:
       - name: Run integration tests
         env:
           REDIS_HOST: localhost
-          REDIS_PORT: 6379
+          REDIS_PORT: "6379"
         run: |
+          mkdir -p test-results
           pytest tests/integration/ -v \
-            --json-report --json-report-file=test-results/integration-results.json \
+            --json-report \
+            --json-report-file=test-results/integration-results.json \
             --tb=short
 
-      - name: Upload integration test results
+      - name: Upload integration results
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -108,15 +119,16 @@ jobs:
     name: Evals
     runs-on: ubuntu-latest
     needs: integration-tests
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
 
-      - name: Install dependencies
+      - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
           pip install \
@@ -138,65 +150,125 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "GEMINI_API_KEY not set — skipping live evals, running mock evals only"
-            pytest evals/ -v --tb=short --ignore=evals/orchestrator --ignore=evals/mentor_agent --ignore=evals/tracker_agent || true
-          else
-            pytest evals/ -v --tb=short \
-              --json-report --json-report-file=test-results/eval-results.json
-          fi
+          mkdir -p test-results
+          pytest evals/ -v --tb=short \
+            --json-report \
+            --json-report-file=test-results/eval-results.json
 
-      - name: Upload eval results
+      - name: Upload eval results and jsonl
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: eval-results
-          path: test-results/
+          path: |
+            test-results/eval-results.json
+            evals/orchestrator/eval_results.jsonl
+            evals/mentor_agent/eval_results.jsonl
+            evals/tracker_agent/eval_results.jsonl
 
   playwright:
     name: Playwright Tests
     runs-on: ubuntu-latest
     needs: evals
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
 
-      - name: Check if dashboard exists
-        id: check_dash
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Python deps (for API server)
         run: |
-          if [ -f "dashboard/package.json" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Dashboard not built yet — skipping Playwright"
-          fi
+          python -m pip install --upgrade pip
+          pip install \
+            google-genai \
+            redis \
+            psycopg2-binary \
+            httpx \
+            fastapi \
+            uvicorn \
+            pydantic \
+            python-dotenv \
+            numpy
+
+      - name: Start Orbit API server
+        run: |
+          uvicorn infra.api_gateway:app --port 8080 &
+          sleep 3
+          curl -sf http://localhost:8080/health || echo "API not reachable - tests will run in offline mode"
+        env:
+          ORBIT_ENV: ci
 
       - name: Install dashboard deps
-        if: steps.check_dash.outputs.exists == 'true'
         working-directory: dashboard
         run: npm ci
 
       - name: Install Playwright + Chromium
-        if: steps.check_dash.outputs.exists == 'true'
         working-directory: dashboard
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        if: steps.check_dash.outputs.exists == 'true'
         working-directory: dashboard
-        run: npx playwright test --reporter=html,json
+        run: |
+          npx playwright test \
+            --reporter=html,json,list
+        env:
+          VITE_API_URL: http://localhost:8080
+
+      - name: Copy Playwright report to test-results
+        if: always()
+        run: |
+          mkdir -p test-results/playwright
+          cp -r dashboard/playwright-report/* test-results/playwright/ 2>/dev/null || true
+          cp dashboard/test-results/*.json test-results/playwright/ 2>/dev/null || true
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-results
-          path: |
-            test-results/playwright/report.html
-            test-results/playwright/results.json
-            test-results/playwright/screenshots/
-            test-results/playwright/videos/
+          path: test-results/playwright/
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, evals, playwright]
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all results
+        uses: actions/download-artifact@v4
+        with:
+          path: all-results/
+
+      - name: Print summary
+        run: |
+          echo "## Orbit CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests     | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration    | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Evals          | ${{ needs.evals.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Playwright     | ${{ needs.playwright.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          for f in all-results/**/*.json; do
+            if python3 -c "
+import json, sys
+d = json.load(open('$f'))
+if 'summary' in d:
+    s = d['summary']
+    print(f\"**{sys.argv[1]}**: {s.get('passed',0)} passed, {s.get('failed',0)} failed, {s.get('total',0)} total\")
+" "$f" 2>/dev/null; then :; fi
+          done >> $GITHUB_STEP_SUMMARY || true

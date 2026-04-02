@@ -10,3 +10,6 @@
 {"action": "get_streak", "passed": true, "latency_ms": 0}
 {"action": "log_solve", "passed": true, "latency_ms": 0}
 {"action": "get_topic_progress", "passed": true, "latency_ms": 0}
+{"action": "get_streak", "passed": true, "latency_ms": 0}
+{"action": "log_solve", "passed": true, "latency_ms": 0}
+{"action": "get_topic_progress", "passed": true, "latency_ms": 0}
