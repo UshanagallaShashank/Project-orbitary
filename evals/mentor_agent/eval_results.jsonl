@@ -22,3 +22,6 @@
 {"topic": "binary search", "all_parts_present": true, "latency_ms": 0}
 {"topic": "recursion", "all_parts_present": true, "latency_ms": 0}
 {"topic": "dynamic programming", "all_parts_present": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.947703+00:00", "run": "local", "topic": "binary search", "all_parts_present": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.948328+00:00", "run": "local", "topic": "recursion", "all_parts_present": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.948907+00:00", "run": "local", "topic": "dynamic programming", "all_parts_present": true, "latency_ms": 0}

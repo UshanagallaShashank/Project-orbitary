@@ -36,7 +36,7 @@ jobs:
             --json-report --json-report-file=test-results/unit-results.json \
             --tb=short
 
-      - name: Upload results
+      - name: Upload results artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -81,7 +81,7 @@ jobs:
             --json-report --json-report-file=test-results/integration-results.json \
             --tb=short
 
-      - name: Upload results
+      - name: Upload results artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -92,8 +92,13 @@ jobs:
     name: Evals
     runs-on: ubuntu-latest
     needs: integration-tests
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -110,13 +115,27 @@ jobs:
       - name: Run evals
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           mkdir -p test-results
           pytest evals/ -v \
             --json-report --json-report-file=test-results/eval-results.json \
             --tb=short
 
-      - name: Upload eval results
+      - name: Commit eval results back to repo
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "ushanagallashashank"
+          git config user.email "ushanagallashashank@gmail.com"
+          git pull --rebase origin main
+          git add evals/orchestrator/eval_results.jsonl \
+                  evals/mentor_agent/eval_results.jsonl \
+                  evals/tracker_agent/eval_results.jsonl
+          git diff --staged --quiet || git commit \
+            -m "test: eval results — run ${{ github.run_id }} — $(date +%Y-%m-%d)"
+          git push origin main
+
+      - name: Upload eval artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -131,8 +150,13 @@ jobs:
     name: Playwright Tests
     runs-on: ubuntu-latest
     needs: evals
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -152,15 +176,28 @@ jobs:
         working-directory: dashboard
         run: npx playwright test --reporter=html,json,list
 
-      - name: Move results to test-results/playwright
+      - name: Copy results to test-results/playwright
         if: always()
         run: |
           mkdir -p test-results/playwright/screenshots
           cp -r dashboard/playwright-report/. test-results/playwright/ 2>/dev/null || true
-          cp dashboard/test-results/*.json test-results/playwright/ 2>/dev/null || true
-          cp dashboard/test-results/screenshots/* test-results/playwright/screenshots/ 2>/dev/null || true
+          cp dashboard/test-results/results.json test-results/playwright/ 2>/dev/null || true
+          cp -r dashboard/test-results/*/test-finished-*.png \
+                test-results/playwright/screenshots/ 2>/dev/null || true
 
-      - name: Upload Playwright report
+      - name: Commit Playwright results back to repo
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "ushanagallashashank"
+          git config user.email "ushanagallashashank@gmail.com"
+          git pull --rebase origin main
+          git add test-results/playwright/results.json \
+                  test-results/playwright/screenshots/ || true
+          git diff --staged --quiet || git commit \
+            -m "test: playwright results — dashboard — pass — $(date +%Y-%m-%d)"
+          git push origin main
+
+      - name: Upload Playwright artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -175,7 +212,7 @@ jobs:
     steps:
       - name: Write summary
         run: |
-          echo "## Orbit CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "## Orbit CI Results — run ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Result |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY

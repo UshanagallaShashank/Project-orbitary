@@ -8,3 +8,10 @@ __pycache__/
 dashboard/node_modules/
 dashboard/dist/
 dashboard/.vite/
+
+# Playwright — keep screenshots and results.json, skip heavy HTML report
+test-results/playwright/index.html
+test-results/playwright/data/
+test-results/playwright/*.zip
+dashboard/test-results/
+dashboard/playwright-report/

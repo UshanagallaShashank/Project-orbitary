@@ -22,3 +22,6 @@
 {"action": "get_streak", "passed": true, "latency_ms": 0}
 {"action": "log_solve", "passed": true, "latency_ms": 0}
 {"action": "get_topic_progress", "passed": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.958528+00:00", "run": "local", "action": "get_streak", "passed": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.962091+00:00", "run": "local", "action": "log_solve", "passed": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.964288+00:00", "run": "local", "action": "get_topic_progress", "passed": true, "latency_ms": 0}

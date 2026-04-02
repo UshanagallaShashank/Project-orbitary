@@ -46,3 +46,9 @@
 {"input": "read my last 3 emails", "expected": "COMMS", "got": "COMMS", "correct": true, "latency_ms": 0}
 {"input": "what is dynamic programming", "expected": "MENTOR", "got": "MENTOR", "correct": true, "latency_ms": 0}
 {"input": "log that I solved two sum", "expected": "TRACKER", "got": "TRACKER", "correct": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.953446+00:00", "run": "local", "input": "explain binary search to me", "expected": "MENTOR", "got": "MENTOR", "correct": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.954058+00:00", "run": "local", "input": "show my leetcode streak", "expected": "TRACKER", "got": "TRACKER", "correct": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.954539+00:00", "run": "local", "input": "what's on my calendar today", "expected": "CALENDAR", "got": "CALENDAR", "correct": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.955041+00:00", "run": "local", "input": "read my last 3 emails", "expected": "COMMS", "got": "COMMS", "correct": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.955521+00:00", "run": "local", "input": "what is dynamic programming", "expected": "MENTOR", "got": "MENTOR", "correct": true, "latency_ms": 0}
+{"ts": "2026-04-02T02:55:35.955847+00:00", "run": "local", "input": "log that I solved two sum", "expected": "TRACKER", "got": "TRACKER", "correct": true, "latency_ms": 0}
